@@ -26,14 +26,15 @@ void foc_inverter_init(foc_t *hfoc, void (*enable_motor)(void), void (*disable_m
     hfoc->get_pwm_res = get_pwm_res;
 }
 
-void foc_feedback_sensor_init(foc_t *hfoc, float (*get_mech_degre)(void), float *p_abs_encoder_error_LUT, dir_mode_t sensor_dir) {
-    hfoc->get_mech_degre = get_mech_degre;
+void foc_feedback_sensor_init(foc_t *hfoc, float (*get_mech_degre)(void), float (*get_rpm)(void), float *p_abs_encoder_error_LUT) {
+    hfoc->encoder_get_mech_degre = get_mech_degre;
+    hfoc->encoder_get_rpm = get_rpm;
     hfoc->p_abs_encoder_error_comp_deg = p_abs_encoder_error_LUT;
-	hfoc->sensor_dir = sensor_dir;
 }
 
-void foc_speed_feedback_sensor_init(foc_t *hfoc, float fc, float sampling_freq) {
-    second_order_lpf_init(&hfoc->e_omega_lpf, fc, sampling_freq);
+void foc_speed_feedback_sensor_init(foc_t *hfoc, float fc, float Ts) {
+    second_order_lpf_init(&hfoc->e_omega_lpf, fc, 1.0f/Ts);
+    pll_filter_init(&hfoc->e_omega_filt, Ts, fc, 0.7f);
 }
 
 void foc_motor_init(foc_t *hfoc, uint8_t pole_pairs, float kv) {
@@ -92,6 +93,10 @@ void foc_reset(foc_t *hfoc) {
             foc_set_open_loop_voltage(hfoc, 0, 0, 0);
             break;
         }
+        case MOTOR_MODE_IMPEDANCE_CONTROL: {
+            foc_set_impedance_set_point(hfoc, hfoc->actual_angle, 0, 0);
+            break;
+        }
         default:
             break;
     }
@@ -118,6 +123,17 @@ void foc_position_control_update(foc_t *hfoc, float Ts) {
     foc_speed_control_update(hfoc, Ts);
 }
 
+void foc_impedance_control_update(foc_t *hfoc, float Ts) {
+    hfoc->position_control_loop_count++;
+    if (hfoc->position_control_loop_count >= IMPEDANCE_CONTROL_CYCLE) {
+        hfoc->position_control_loop_count = 0;
+        float error = hfoc->pos_ref - hfoc->actual_angle;
+        float error_dot = hfoc->rpm_ref - hfoc->actual_rpm;
+        hfoc->Is_ref = impedance_control_update(&hfoc->impedance_ctrl, error, error_dot, hfoc->cff_ref);
+    }
+    foc_current_control_update(hfoc, Ts);
+}
+
 void foc_sensored_calc_electric_angle(foc_t *hfoc) {
     // Check for NULL pointer and invalid parameters
     if (hfoc == NULL || hfoc->pole_pairs <= 0 || 
@@ -127,7 +143,10 @@ void foc_sensored_calc_electric_angle(foc_t *hfoc) {
     }
 
     float e_rad = 0.0f;
-    float angle_deg = hfoc->get_mech_degre();
+    float angle_deg = fmodf(hfoc->encoder_get_mech_degre(), 360.0f);
+    if (angle_deg < 0.0f) {
+        angle_deg += 360.0f;
+    }
 
     hfoc->m_angle_rad = DEG_TO_RAD(angle_deg);
     norm_angle_rad(&hfoc->m_angle_rad);
@@ -161,11 +180,6 @@ void foc_sensored_calc_electric_angle(foc_t *hfoc) {
     }
     
     e_rad = hfoc->m_angle_rad_comp * hfoc->pole_pairs;
-
-    // Handle sensor direction
-    if (hfoc->sensor_dir == REVERSE_DIR) {
-        e_rad = TWO_PI - e_rad;
-    }
 
     // Normalize final electric angle
     norm_angle_rad(&e_rad);
@@ -459,8 +473,7 @@ void foc_current_control_update(foc_t *hfoc, float Ts) {
         switch (hfoc->state) {
             case MOTOR_STATE_SENSORED: {
                 hfoc->e_rad = hfoc->encoder_e_angle_rad;
-                hfoc->e_omega = hfoc->encoder_e_omega;
-                hfoc->actual_rpm = (hfoc->e_omega * 60.0f / TWO_PI) / hfoc->pole_pairs;
+                hfoc->actual_rpm = hfoc->encoder_get_rpm();
                 if (fabsf(hfoc->actual_rpm) > 500.0f) {
                     hfoc->state = MOTOR_STATE_SMO;
                 }
@@ -484,8 +497,7 @@ void foc_current_control_update(foc_t *hfoc, float Ts) {
         id_error = id_ref - id;
         iq_error = iq_ref - iq;
         hfoc->e_rad = hfoc->encoder_e_angle_rad;
-        hfoc->e_omega = hfoc->encoder_e_omega;
-        hfoc->actual_rpm = (hfoc->e_omega * 60.0f / TWO_PI) / hfoc->pole_pairs;
+        hfoc->actual_rpm = hfoc->encoder_get_rpm();
     }
 
     // voltage limit
@@ -518,26 +530,11 @@ void foc_current_control_update(foc_t *hfoc, float Ts) {
     hfoc->vq = vq_ref;
 }
 
-void foc_get_mech_degree(foc_t *hfoc, float Ts) {
-    if (++hfoc->encoder_loop_count < SPEED_CONTROL_CYCLE) return;
-    hfoc->encoder_loop_count = 0;
-
+void foc_get_mech_degree(foc_t *hfoc) {
     // calculate mechanical angle (degree)
     if (hfoc->foc_mode == FOC_MODE_SENSORED ||
         hfoc->foc_mode == FOC_MODE_HYBRID) {
-        float encoder_deg = hfoc->m_angle_deg_comp;
-
-        float deg_diff = encoder_deg - hfoc->last_encoder_deg;
-        hfoc->last_encoder_deg = encoder_deg;
-        
-        if (deg_diff < -180.0f) {
-            hfoc->m_angle_overflow_count++;
-        } else if (deg_diff > 180.0f) {
-            hfoc->m_angle_overflow_count--;
-        }
-        float total_m_angle = encoder_deg + (float)hfoc->m_angle_overflow_count * 360.0f;
-        float mechanical_angle_deg = total_m_angle * hfoc->gear_ratio;
-        hfoc->actual_angle = mechanical_angle_deg;
+        hfoc->actual_angle = hfoc->encoder_get_mech_degre();
     }
     else {
         float rad_diff = hfoc->e_rad - hfoc->last_e_rad;
@@ -552,21 +549,29 @@ void foc_get_mech_degree(foc_t *hfoc, float Ts) {
         float mechanical_angle_deg = RAD_TO_DEG(total_e_angle) / (float)hfoc->pole_pairs * hfoc->gear_ratio;
         hfoc->actual_angle = mechanical_angle_deg;
     }
+}
 
-    // calculate e_omega
-    for (uint16_t i = 0; i < SPEED_WINDOW_SIZE - 1; i++) {
-        hfoc->e_rad_window[i] = hfoc->e_rad_window[i + 1];
+void foc_trajectory_update(foc_t *hfoc, float Ts) {
+    hfoc->trj_tick++;
+    if (hfoc->trj_tick >= TRAJECTORY_CYCLE) {
+        hfoc->trj_tick = 0;
+        if (s_curve_update(&hfoc->trajectory, Ts * TRAJECTORY_CYCLE) == 0) {
+            hfoc->pos_ref = s_curve_get_pos(&hfoc->trajectory);
+            hfoc->rpm_ref = s_curve_get_vel(&hfoc->trajectory) / 6.0f;
+        }
     }
-    hfoc->e_rad_window[SPEED_WINDOW_SIZE - 1] = hfoc->e_rad;
-    float delta_e_rad = hfoc->e_rad_window[SPEED_WINDOW_SIZE - 1] - hfoc->e_rad_window[0];
-    delta_e_rad -= TWO_PI * floorf((delta_e_rad + PI) / TWO_PI);
-    float e_omega = delta_e_rad / ((SPEED_WINDOW_SIZE - 1) * Ts * SPEED_CONTROL_CYCLE);
-    hfoc->encoder_e_omega = second_order_lpf_update(&hfoc->e_omega_lpf, e_omega);
+}
+
+int8_t foc_move_s_curve(foc_t *hfoc, float target_pos) {
+    float start_pos = foc_get_position_set_point(hfoc);
+    s_curve_start(&hfoc->trajectory, start_pos, target_pos);
+    return 0;
 }
 
 void foc_update(foc_t *hfoc, float Ts) {
     foc_sensored_calc_electric_angle(hfoc);
-    foc_get_mech_degree(hfoc, Ts);
+    foc_get_mech_degree(hfoc);
+    foc_trajectory_update(hfoc, Ts);
     if (!hfoc->start_foc) {
         hfoc->init_tick++;
         if (hfoc->init_tick > 100) {
@@ -590,6 +595,10 @@ void foc_update(foc_t *hfoc, float Ts) {
         }
         case MOTOR_MODE_POSITION_CONTROL: {
             foc_position_control_update(hfoc, Ts);
+            break;
+        }
+        case MOTOR_MODE_IMPEDANCE_CONTROL: {
+            foc_impedance_control_update(hfoc, Ts);
             break;
         }
         default:
@@ -714,6 +723,13 @@ void foc_set_speed_set_point(foc_t *hfoc, float rpm) {
 void foc_set_position_set_point(foc_t *hfoc, float pos_deg) {
     if (hfoc->motor_mode != MOTOR_MODE_POSITION_CONTROL) return;
     hfoc->pos_ref = pos_deg;
+}
+
+void foc_set_impedance_set_point(foc_t *hfoc, float pos_deg, float rpm, float cff) {
+    if (hfoc->motor_mode != MOTOR_MODE_IMPEDANCE_CONTROL) return;
+    hfoc->pos_ref = pos_deg;
+    hfoc->rpm_ref = rpm;
+    hfoc->cff_ref = cff;
 }
 
 void foc_get_idiq(foc_t *hfoc, float *id, float *iq) {

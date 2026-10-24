@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 #include "AS5047P_Config.h"
+#include "pll_filter.h"
 
 typedef enum {
     SENSOR_DIR_NORMAL,
@@ -19,17 +20,11 @@ typedef enum {
 typedef struct {
     uint8_t spi_rx_buffer[2];
     
-    uint32_t raw_pos;
-    float angle_filtered;
-    float prev_angle_filtered;
-    float prev_raw_angle;
-    uint8_t spike_counter;
-    
-    float prev_angle;
-    float filtered_rpm;
-    float prev_rpm;
-    float angle_accumulator;
-    uint32_t time_accumulator;
+    int32_t count_raw;
+    int32_t last_count_raw;
+    int32_t countinuous_count;
+    pll_filter_t count_filt;
+    float continuous_deg;
 
     sensor_dir_t dir;
     float count_to_deg_scale;
@@ -50,14 +45,13 @@ typedef struct {
 
 void AS5047P_spi_config(AS5047P_t *encd, int (*spi_transfer)(uint8_t*, uint8_t*, uint16_t), void (*spi_cs)(_Bool));
 void AS5047P_init(AS5047P_t *encd, sensor_dir_t dir, float scale);
-void AS5047P_set_angle_filter_fc(AS5047P_t *encd, float fc, float Ts);
-void AS5047P_set_rpm_filter_fc(AS5047P_t *encd, float fc, float Ts);
-int AS5047P_start(AS5047P_t *encd);
-void AS5047P_calc_degree(AS5047P_t *encd);
+void AS5047P_set_pll_filter(AS5047P_t *encd, float fc, float Ts);
+
+void AS5047P_pll_filter_update(AS5047P_t *encd);
 void AS5047P_update(AS5047P_t *encd);
 void AS5047P_set_spi_transfer_done(AS5047P_t *encd);
 float AS5047P_get_degree(AS5047P_t *encd);
-float AS5047P_get_rpm(AS5047P_t *encd, float Ts);
-float AS5047P_get_actual_degree(AS5047P_t *encd);
+float AS5047P_get_rpm(AS5047P_t *encd);
+float AS5047P_get_continuous_degree(AS5047P_t *encd);
 
 #endif /* AS5047P_H_ */

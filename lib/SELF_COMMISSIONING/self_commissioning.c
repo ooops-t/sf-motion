@@ -246,7 +246,10 @@ void sc_calibrate_abs_encoder_update(self_commissioning_t *sc) {
     float vd = 1.8f;
     float vq = 0.0f;
     
-    float mech_degree = sc->p_foc->get_mech_degre();
+    float mech_degree = fmodf(sc->p_foc->encoder_get_mech_degre(), 360.0f);
+    if (mech_degree < 0.0f) {
+        mech_degree += 360.0f;
+    }
 
     if (sc->signal_t < sc->signal_delay_t) {
         sc->abs_encoder_deg_initial = mech_degree;

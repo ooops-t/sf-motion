@@ -88,7 +88,7 @@ class SerialPortDialog(QtWidgets.QDialog):
 
 
 class DataAcquisitionThread(QtCore.QThread):
-    data_received = QtCore.pyqtSignal(int, float)
+    data_received = QtCore.pyqtSignal(int, int, float)
     connection_lost = QtCore.pyqtSignal()
     
     def __init__(self, serial_conn=None, parent=None):
@@ -154,9 +154,8 @@ class DataAcquisitionThread(QtCore.QThread):
 
                 payload = bytes(self.raw_buffer[3:frame_size])
 
-                # Payload must contain:
-                # COM_TYPE + ADDRESS
-                if payload_length < 2:
+                # Payload must contain COM_TYPE, NODE_ID, and ADDRESS.
+                if payload_length < 3:
                     self.raw_buffer = self.raw_buffer[frame_size:]
                     continue
 
@@ -181,9 +180,10 @@ class DataAcquisitionThread(QtCore.QThread):
                 elif com_type == 0x05: # STREAMING
                     if len(data) != 4:
                         print(f"Invalid streaming data length: {len(data)}")
+                        self.raw_buffer = self.raw_buffer[frame_size:]
                         continue
                     value = struct.unpack("<f", data)[0]
-                    self.data_received.emit(address, value)
+                    self.data_received.emit(node_id, address, value)
                     # print(f'addr:{address} | data:{value}')
 
                 elif com_type == 0x06: # EVENT
@@ -209,48 +209,6 @@ class DataAcquisitionThread(QtCore.QThread):
             self.serial_conn.close()
         self.wait()
 
-class MotorSequenceThread(QtCore.QThread):
-    def __init__(self, motor, mode, sequence, parent=None):
-        super().__init__(parent)
-        self.motor = motor
-        self.mode = mode
-        self.sequence = sequence
-        self.running = True
-
-    def run(self):
-        # Set mode
-        m = self.motor
-        m.set_foc_motor_mode(self.mode)
-        m.plotter_remove_all_line()
-        if self.mode == 0:
-            m.plotter_add_line('Is_ref')
-            m.plotter_add_line('id')
-            m.plotter_add_line('iq')
-        elif self.mode == 1:
-            # m.plotter_add_line('rpm_ref')
-            # m.plotter_add_line('actual_rpm')
-            m.plotter_add_line('ia')
-            m.plotter_add_line('ib')
-            m.plotter_add_line('ic')
-        elif self.mode == 2:
-            m.plotter_add_line('pos_ref')
-            m.plotter_add_line('actual_angle')
-
-        # run sequence
-        for setpoint, delay in self.sequence:
-            if not self.running:
-                break
-            if self.mode == 0:
-                m.set_foc_current_set_point(setpoint)
-            elif self.mode == 1:
-                m.set_foc_speed_set_point(setpoint)
-            elif self.mode == 2:
-                m.set_foc_position_set_point(setpoint)
-            self.msleep(int(delay * 1000))
-
-    def stop(self):
-        self.running = False
-
 class LivePlotter(QtWidgets.QMainWindow):
     def __init__(self, max_points=1000, port=None, baudrate=115200, node_id=0x00):
         super().__init__()
@@ -259,7 +217,13 @@ class LivePlotter(QtWidgets.QMainWindow):
         self.serial_conn = None
         self.acq_thread = None
         self.is_connected = False
-        self.node_id = node_id
+        if node_id is None:
+            self.node_ids = [1]
+        elif isinstance(node_id, int):
+            self.node_ids = [node_id]
+        else:
+            self.node_ids = list(dict.fromkeys(node_id))
+        self.node_ids = [node for node in self.node_ids if node is not None]
         
         # Setup UI
         self.setup_ui()
@@ -475,10 +439,18 @@ class LivePlotter(QtWidgets.QMainWindow):
             
             # Initialize motor protocol
             # self.motor = MotorProtocol(self.serial_conn, self.acq_thread)
-            self.motor = SFMotion(self.serial_conn, self.acq_thread, self.node_id)
+            self.motors = {
+                node_id: SFMotion(self.serial_conn, self.acq_thread, node_id)
+                for node_id in self.node_ids
+            }
+            self.motor = next(iter(self.motors.values()), None)
+            for index, motor in enumerate(self.motors.values(), start=1):
+                setattr(self, f"motor{index}", motor)
             
             # Update console namespace
             self.console_namespace["thread"] = self.acq_thread
+            for index, motor in enumerate(self.motors.values(), start=1):
+                self.console_namespace[f"motor{index}"] = motor
             self.console_namespace["motor"] = self.motor
             self.setup_console_completion()
             
@@ -490,25 +462,9 @@ class LivePlotter(QtWidgets.QMainWindow):
             
             print("Serial connection established successfully")
 
-            # setup plotter
-            motor_mode = self.motor.get_motor_mode()
-            print(f'motor mode: {motor_mode}')
-            if motor_mode == 0:
-                self.enable_streaming(self.motor.channel.current_set_point)
-                self.enable_streaming(self.motor.channel.id)
-                self.enable_streaming(self.motor.channel.iq)
-                self.enable_streaming(self.motor.channel.e_rad)
-                self.enable_streaming(self.motor.channel.v_bus)
-            elif motor_mode == 1:
-                self.enable_streaming(self.motor.channel.speed_set_point)
-                self.enable_streaming(self.motor.channel.actual_rpm)
-                self.enable_streaming(self.motor.channel.actual_angle)
-            elif motor_mode == 2:
-                self.enable_streaming(self.motor.channel.position_set_point)
-                self.enable_streaming(self.motor.channel.actual_angle)
-            else:
-                self.enable_streaming(self.motor.channel.m_angle_rad)
-                self.enable_streaming(self.motor.channel.m_angle_rad_comp)
+            for motor in self.motors.values():
+                motor.set_impedance_control(0.4, 0.006)
+                motor.enable_streaming(motor.channel.actual_angle)
 
             
         except serial.SerialException as e:
@@ -530,6 +486,8 @@ class LivePlotter(QtWidgets.QMainWindow):
             self.serial_conn = None
         
         self.is_connected = False
+        self.motors = {}
+        self.motor = None
         self.connect_action.setEnabled(True)
         self.disconnect_action.setEnabled(False)
         self.status_label.setText("Disconnected")
@@ -537,6 +495,8 @@ class LivePlotter(QtWidgets.QMainWindow):
         # Update console namespace
         self.console_namespace["thread"] = None
         self.console_namespace["motor"] = None
+        for key in [key for key in self.console_namespace if key.startswith("motor")]:
+            self.console_namespace.pop(key, None)
         self.setup_console_completion()
         
         print("Disconnected from serial port")
@@ -564,15 +524,16 @@ class LivePlotter(QtWidgets.QMainWindow):
             self.used_colors.remove(color)
 
     def remove_channel(self, address):
-        if address not in self.channels:
-            return
-
-        ch = self.channels.pop(address)
-        line = ch["line"]
-
-        self.legend.removeItem(line)
-        self.plot_widget.removeItem(line)
-        self.release_color(ch["color"])
+        keys = [
+            key for key in self.channels
+            if key == address or (isinstance(key, tuple) and key[1] == address)
+        ]
+        for key in keys:
+            ch = self.channels.pop(key)
+            line = ch["line"]
+            self.legend.removeItem(line)
+            self.plot_widget.removeItem(line)
+            self.release_color(ch["color"])
 
         self.disabled_addresses.add(address)
 
@@ -580,16 +541,19 @@ class LivePlotter(QtWidgets.QMainWindow):
             self.legend.setVisible(False)
 
 
-    def on_data_received(self, address, value):
+    def on_data_received(self, node_id, address, value):
         if self.paused or not self.is_connected:
             return
 
-        if address in self.disabled_addresses:
+        channel_key = (node_id, address)
+        if channel_key in self.disabled_addresses or address in self.disabled_addresses:
             return
 
-        if address not in self.channels:
-            register = self.motor.registers.get(address)
-            name = register["name"] if register is not None else f"Address {address}"
+        if channel_key not in self.channels:
+            motor = self.motors.get(node_id)
+            register = motor.registers.get(address) if motor else None
+            register_name = register["name"] if register is not None else f"Address {address}"
+            name = f"Node {node_id}: {register_name}" if len(self.motors) > 1 else register_name
 
             buffer = deque(maxlen=self.max_points)
             time_buffer = deque(maxlen=self.max_points)
@@ -603,7 +567,7 @@ class LivePlotter(QtWidgets.QMainWindow):
             if not self.legend.isVisible():
                 self.legend.setVisible(True)
 
-            self.channels[address] = {
+            self.channels[channel_key] = {
                 "line": line,
                 "buffer": buffer,
                 "time": time_buffer,
@@ -611,7 +575,7 @@ class LivePlotter(QtWidgets.QMainWindow):
                 "name": name
             }
 
-        ch = self.channels[address]
+        ch = self.channels[channel_key]
         ch["buffer"].append(value)
         ch["time"].append(self.counter)
         self.counter += 1
@@ -660,10 +624,8 @@ class LivePlotter(QtWidgets.QMainWindow):
         if len(self.time_buffer) > 0:
             all_values = []
             
-            for name in self.motor.plotter_channels:
-                if name in self.channels:
-                    buffer = self.channels[name]["buffer"]
-                    all_values.extend(buffer)
+            for channel in self.channels.values():
+                all_values.extend(channel["buffer"])
 
             if not all_values:
                 return
@@ -721,71 +683,3 @@ class LivePlotter(QtWidgets.QMainWindow):
         self.motor.enable_streaming(address)
         self.disabled_addresses.discard(address)
 
-
-
-
-
-
-
-
-    def run_motor_sequence(self, mode, sequence):
-        if (
-            self.motor_sequence_thread is not None
-            and self.motor_sequence_thread.isRunning()
-        ):
-            print("Motor sequence is already running")
-            return
-
-        self.motor_sequence_thread = MotorSequenceThread(
-            motor=self.motor,
-            mode=mode,
-            sequence=sequence,
-            parent=self
-        )
-
-        self.motor_sequence_thread.finished.connect(
-            self.on_motor_sequence_finished
-        )
-
-        self.motor_sequence_thread.start()
-
-    def on_motor_sequence_finished(self):
-        print("Motor sequence finished")
-        self.motor_sequence_thread.deleteLater()
-        self.motor_sequence_thread = None
-
-    def run_motor_speed_demo(self):
-        sequence = (
-            [(speed, 0.02) for speed in range(0, 1001, 10)] +
-            [(1000, 2)] +
-            [(speed, 0.02) for speed in range(1000, -1, -10)] +
-            [(0, 2)] +
-            [(speed, 0.02) for speed in range(0, -1001, -10)] + 
-            [(-1000, 2)] +
-            [(speed, 0.02) for speed in range(-1000, 1, 10)]
-        )
-        self.run_motor_sequence(1, sequence)
-
-    def run_motor_position_demo(self):
-        sequence = [
-            (0, 1),
-            (90, 1),
-            (180, 1),
-            (360, 1),
-            (0, 1),
-            (-45, 1),
-            (-180, 1),
-            (0, 1),
-            (90, 1),
-            (0, 1),
-        ]
-        self.run_motor_sequence(2, sequence)
-
-    def run_motor_current_demo(self):
-        sequence = [
-            (0, 1),
-            (50, 10),
-            (0, 1),
-        ]
-        self.run_motor_sequence(1, sequence)
-    

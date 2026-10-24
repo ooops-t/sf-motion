@@ -12,12 +12,15 @@
 #include "FOC_config.h"
 #include "FOC_math.h"
 #include "pid_utils.h"
+#include "impedance_control.h"
 #include "sliding_mode_observer.h"
 #include "pll.h"
+#include "pll_filter.h"
 #include "lpf.h"
 #include "hfi_sdft.h"
 #include "hfi_lpf.h"
 #include "motor.h"
+#include "trajectory.h"
 
 #define ERROR_LUT_SIZE (1024)
 
@@ -41,6 +44,7 @@ typedef enum {
 	MOTOR_MODE_AUDIO,
 	MOTOR_MODE_VOLTAGE_CONTROL,
 	MOTOR_MODE_DISABLE,
+	MOTOR_MODE_IMPEDANCE_CONTROL,
 }motor_mode_t;
 
 typedef enum {
@@ -49,10 +53,6 @@ typedef enum {
 	FOC_MODE_SENSORLESS_SMO_HFI_NEW,
 	FOC_MODE_HYBRID
 }foc_mode_t;
-
-typedef enum {
-	NORMAL_DIR, REVERSE_DIR
-}dir_mode_t;
 
 // state machine for HFI
 typedef enum {
@@ -118,6 +118,7 @@ typedef struct {
 	float id_ref, iq_ref;
 	float rpm_ref;
 	float pos_ref;
+	float cff_ref;
 
 	uint8_t speed_control_loop_count;
 	uint8_t position_control_loop_count;
@@ -126,6 +127,8 @@ typedef struct {
 	PID_Controller_t id_ctrl, iq_ctrl;
 	PID_Controller_t speed_ctrl;
 	PID_Controller_t pos_ctrl;
+
+	impedance_t impedance_ctrl;
 
 	//field weakening
 	PID_Controller_t fw_ctrl;
@@ -137,7 +140,6 @@ typedef struct {
 	_Bool mtpa_enable;
 
 	float gear_ratio;
-	dir_mode_t sensor_dir;
 
 	motor_state_t state;
 
@@ -149,6 +151,8 @@ typedef struct {
 	SecondOrderLPF iq_lpf;
 	SecondOrderLPF e_omega_lpf;
 
+	pll_filter_t e_omega_filt;
+
 	//polarity detection
 	p_det_state_t pd_state;
 	float pd_v_pulse;
@@ -156,6 +160,10 @@ typedef struct {
 	float pd_i_n;
 	uint16_t pd_time;
 	uint16_t pd_count;
+
+	// trajectory
+	s_curve_t trajectory;
+	uint16_t trj_tick; 
 
 	//debug
 	int sample_index;
@@ -166,12 +174,13 @@ typedef struct {
 	void (*enable_motor)(void);
 	void (*disable_motor)(void);
 	uint32_t (*get_pwm_res)(void);
-	float (*get_mech_degre)(void);
+	float (*encoder_get_mech_degre)(void);
+	float (*encoder_get_rpm)(void);
 }foc_t;
 
 void foc_inverter_init(foc_t *hfoc, void (*enable_motor)(void), void (*disable_motor)(void), uint32_t (*get_pwm_res)(void));
-void foc_feedback_sensor_init(foc_t *hfoc, float (*get_mech_degre)(void), float *p_abs_encoder_error_LUT, dir_mode_t sensor_dir);
-void foc_speed_feedback_sensor_init(foc_t *hfoc, float fc, float sampling_freq);
+void foc_feedback_sensor_init(foc_t *hfoc, float (*get_mech_degre)(void), float (*get_rpm)(void), float *p_abs_encoder_error_LUT);
+void foc_speed_feedback_sensor_init(foc_t *hfoc, float fc, float Ts);
 void foc_motor_init(foc_t *hfoc, uint8_t pole_pairs, float kv);
 void foc_gear_reducer_init(foc_t *hfoc, float ratio);
 void foc_set_limit_current(foc_t *hfoc, float i_limit);
@@ -216,10 +225,13 @@ void foc_set_open_loop_voltage(foc_t *hfoc, float vd, float vq, float e_rad);
 void foc_set_current_set_point(foc_t *hfoc, float Is);
 void foc_set_speed_set_point(foc_t *hfoc, float rpm);
 void foc_set_position_set_point(foc_t *hfoc, float pos_deg);
+void foc_set_impedance_set_point(foc_t *hfoc, float pos_deg, float rpm, float cff);
 void foc_get_idiq(foc_t *hfoc, float *id, float *iq);
 float foc_get_current_set_point(foc_t *hfoc);
 float foc_get_speed_set_point(foc_t *hfoc);
 float foc_get_position_set_point(foc_t *hfoc); 
 float foc_get_actual_e_rad(foc_t *hfoc);
+
+int8_t foc_move_s_curve(foc_t *hfoc, float target_pos);
 
 #endif /* FOC_INC_FOC_UTILS_H_ */

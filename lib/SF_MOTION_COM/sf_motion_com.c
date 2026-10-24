@@ -319,12 +319,37 @@ SFM_GETTER(get_actual_rpm, *(float *)data = com->pfoc->actual_rpm)
 SFM_GETTER(get_actual_angle, *(float *)data = com->pfoc->actual_angle)
 
 SFM_GETTER(get_Is_ref, *(float *)data = com->pfoc->Is_ref)
+SFM_SETTER(set_Is_ref, com->pfoc->Is_ref = *(float *)data)
+
 SFM_GETTER(get_rpm_ref, *(float *)data = com->pfoc->rpm_ref)
+SFM_SETTER(set_rpm_ref, com->pfoc->rpm_ref = *(float *)data)
+
 SFM_GETTER(get_pos_ref, *(float *)data = com->pfoc->pos_ref)
+SFM_SETTER(set_pos_ref, com->pfoc->pos_ref = *(float *)data)
 
 SFM_GETTER(get_m_angle_rad, *(float *)data = com->pfoc->m_angle_rad)
 SFM_GETTER(get_m_angle_rad_comp, *(float *)data = com->pfoc->m_angle_rad_comp)
 SFM_GETTER(get_v_bus, *(float *)data = com->pfoc->v_bus)
+
+SFM_GETTER(get_impedance_stiffness, *(float *)data = impedance_get_stiffness(&com->pfoc->impedance_ctrl))
+SFM_SETTER(set_impedance_stiffness, impedance_set_stiffness(&com->pfoc->impedance_ctrl, *(float *)data))
+
+SFM_GETTER(get_impedance_damping, *(float *)data = impedance_get_damping(&com->pfoc->impedance_ctrl))
+SFM_SETTER(set_impedance_damping, impedance_set_damping(&com->pfoc->impedance_ctrl, *(float *)data))
+
+SFM_GETTER(get_cff_ref, *(float *)data = com->pfoc->cff_ref)
+SFM_SETTER(set_cff_ref, com->pfoc->cff_ref = *(float *)data)
+
+SFM_GETTER(get_trajectory_v_max, *(float *)data = com->pfoc->trajectory.v_max)
+SFM_SETTER(set_trajectory_v_max, s_curve_set_v_max(&com->pfoc->trajectory, *(float *)data))
+
+SFM_GETTER(get_trajectory_a_max, *(float *)data = com->pfoc->trajectory.a_max)
+SFM_SETTER(set_trajectory_a_max, s_curve_set_a_max(&com->pfoc->trajectory, *(float *)data))
+
+SFM_GETTER(get_trajectory_j_max, *(float *)data = com->pfoc->trajectory.j_max)
+SFM_SETTER(set_trajectory_j_max, s_curve_set_j_max(&com->pfoc->trajectory, *(float *)data))
+
+SFM_SETTER(set_trajectory_target_pos, foc_move_s_curve(com->pfoc, *(float *)data))
 
 /************************************************************************************************ */
 
@@ -401,12 +426,21 @@ sfm_com_register_handler_t sfm_com_reg[] = {
   {get_e_rad, set_e_rad, SFM_COM_STREAM_ENA, sizeof(float)},                                // 59
   {get_actual_rpm, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                // 60
   {get_actual_angle, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                              // 61
-  {get_Is_ref, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                    // 62
-  {get_rpm_ref, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                   // 63
-  {get_pos_ref, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                   // 64
+  {get_Is_ref, set_Is_ref, SFM_COM_STREAM_ENA, sizeof(float)},                              // 62
+  {get_rpm_ref, set_rpm_ref, SFM_COM_STREAM_ENA, sizeof(float)},                            // 63
+  {get_pos_ref, set_pos_ref, SFM_COM_STREAM_ENA, sizeof(float)},                            // 64
   {get_m_angle_rad, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                               // 65
   {get_m_angle_rad_comp, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                          // 66
   {get_v_bus, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                     // 67
+  
+  {get_impedance_stiffness, set_impedance_stiffness, SFM_COM_STREAM_DIS, sizeof(float)},    // 68
+  {get_impedance_damping, set_impedance_damping, SFM_COM_STREAM_DIS, sizeof(float)},        // 69
+  {get_cff_ref, set_cff_ref, SFM_COM_STREAM_ENA, sizeof(float)},                            // 70
+
+  {get_trajectory_v_max, set_trajectory_v_max, SFM_COM_STREAM_DIS, sizeof(float)},                          // 71
+  {get_trajectory_a_max, set_trajectory_a_max, SFM_COM_STREAM_DIS, sizeof(float)},                          // 72
+  {get_trajectory_j_max, set_trajectory_j_max, SFM_COM_STREAM_DIS, sizeof(float)},                          // 73
+  {NULL, set_trajectory_target_pos, SFM_COM_STREAM_DIS, sizeof(float)},                     // 74
 };
 
 const int SFM_COM_MAX = sizeof(sfm_com_reg) / sizeof(sfm_com_register_handler_t);

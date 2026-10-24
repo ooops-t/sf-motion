@@ -153,6 +153,10 @@ class SFMotion:
         major, minor, patch = struct.unpack("<3B", response_data)
         return major, minor, patch
     
+    def set_impedance_control(self, kp, kd):
+        self.set_impedance_stiffness(kp)
+        self.set_impedance_damping(kd)
+        
     def self_commissioning(self):
         self.set_start_measure_resistance()
         time.sleep(1)
@@ -236,4 +240,13 @@ class SFMotion:
             "d_filter_fc": d_filter_fc
         }
 
-    
+    def move_s_curve(self, target_pos, v_max, a_max, j_max):
+        self.set_trajectory_v_max(v_max)
+        self.set_trajectory_a_max(a_max)
+        self.set_trajectory_j_max(j_max)
+        self.set_trajectory_target_pos(target_pos)
+
+
+
+# motor.set_impedance_control(0.1, 0.006)
+# motor.move_s_curve(-360, 2000, 20000, 100000)

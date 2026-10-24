@@ -456,7 +456,7 @@
       "name": "is_ref",
       "format": "<f",
       "read": true,
-      "write": false,
+      "write": true,
       "streaming": true
     },
     {
@@ -464,7 +464,7 @@
       "name": "rpm_ref",
       "format": "<f",
       "read": true,
-      "write": false,
+      "write": true,
       "streaming": true
     },
     {
@@ -472,7 +472,7 @@
       "name": "pos_ref",
       "format": "<f",
       "read": true,
-      "write": false,
+      "write": true,
       "streaming": true
     },
     {
@@ -498,6 +498,62 @@
       "read": true,
       "write": false,
       "streaming": true
+    },
+    {
+      "address": 68,
+      "name": "impedance_stiffness",
+      "format": "<f",
+      "read": true,
+      "write": true,
+      "streaming": false
+    },
+    {
+      "address": 69,
+      "name": "impedance_damping",
+      "format": "<f",
+      "read": true,
+      "write": true,
+      "streaming": false
+    },
+    {
+      "address": 70,
+      "name": "cff_ref",
+      "format": "<f",
+      "read": true,
+      "write": true,
+      "streaming": true
+    },
+    {
+      "address": 71,
+      "name": "trajectory_v_max",
+      "format": "<f",
+      "read": true,
+      "write": true,
+      "streaming": false
+    },
+    {
+      "address": 72,
+      "name": "trajectory_a_max",
+      "format": "<f",
+      "read": true,
+      "write": true,
+      "streaming": false
+    },
+    {
+      "address": 73,
+      "name": "trajectory_j_max",
+      "format": "<f",
+      "read": true,
+      "write": true,
+      "streaming": false
+    },
+    {
+      "address": 74,
+      "name": "trajectory_target_pos",
+      "format": "<f",
+      "read": false,
+      "write": true,
+      "streaming": false
     }
   ]
 }

@@ -119,7 +119,11 @@ uint32_t motor1_get_pwm_res(void) {
 }
 
 float motor1_as5047p_get_mech_deg(void) {
-  return AS5047P_get_degree(&hencd1);
+  return AS5047P_get_continuous_degree(&hencd1);
+}
+
+float motor1_as5047p_get_rpm(void) {
+  return AS5047P_get_rpm(&hencd1);
 }
 
 int motor1_as5047p_spi_transmit(uint8_t *tx, uint8_t *rx, uint16_t len) {
@@ -183,8 +187,7 @@ static void init_motor(void) {
 static void init_encoder(void) {
   AS5047P_spi_config(&hencd1, motor1_as5047p_spi_transmit, motor1_as5047p_spi_cs);
   AS5047P_init(&hencd1, SENSOR_DIR_REVERSE, (360.0f / 16383.0f));
-  AS5047P_set_angle_filter_fc(&hencd1, 1000.0f, FOC_TS);
-  AS5047P_set_rpm_filter_fc(&hencd1, 50.0f, FOC_TS);
+  AS5047P_set_pll_filter(&hencd1, 500.0f, FOC_TS);
 }
 
 static void init_foc(void) {
@@ -205,8 +208,8 @@ static void init_foc(void) {
   sc_init(&hsc1, &hfoc1);
 
   foc_inverter_init(&hfoc1, motor1_inverter_enable, motor1_inverter_disable, motor1_get_pwm_res);
-  foc_feedback_sensor_init(&hfoc1, motor1_as5047p_get_mech_deg, hstorage1.memory.encoder_config.error_comp_deg, NORMAL_DIR);
-  foc_speed_feedback_sensor_init(&hfoc1, 500.0f, 1.0f/SPEED_TS);
+  foc_feedback_sensor_init(&hfoc1, motor1_as5047p_get_mech_deg, motor1_as5047p_get_rpm, hstorage1.memory.encoder_config.error_comp_deg);
+  foc_speed_feedback_sensor_init(&hfoc1, 500.0f, FOC_TS);
 
   link_can_init(hfoc1.motor.device_id);
   sfm_usb_com_init(&hsfm_usb_com, usb_send_data);
@@ -233,6 +236,8 @@ static void init_foc(void) {
   // field weakening
   pid_reset(&hfoc1.fw_ctrl);
   pid_set_ts(&hfoc1.fw_ctrl, FOC_TS);
+
+  impedance_set_max_out(&hfoc1.impedance_ctrl, 10);
 
   // foc_motor_init(&hfoc1, hstorage1.memory.motor_config.pole_pairs, 360.0f);
   // foc_set_mode(&hfoc1, FOC_MODE_SENSORED);
@@ -303,7 +308,9 @@ void HAL_ADCEx_InjectedConvCpltCallback(ADC_HandleTypeDef* hadc) {
     adc_buff[2] = ADC1->JDR3; // current sense C
     adc_buff[3] = ADC1->JDR4; // power voltage sense
     motor_calculate_power_voltage(&hfoc1.motor);
-    motor_get_power_voltage(&hfoc1.motor, &hfoc1.v_bus);
+    // motor_get_power_voltage(&hfoc1.motor, &hfoc1.v_bus);
+    hfoc1.v_bus = 12.0f;
+    AS5047P_pll_filter_update(&hencd1);
     sc_update(&hsc1, FOC_TS);
     foc_update(&hfoc1, FOC_TS);
   }
@@ -365,7 +372,7 @@ int main(void)
 #endif
 
   init_foc();
-  // uint32_t tick = HAL_GetTick();
+  uint32_t tick = HAL_GetTick();
 
   /* USER CODE END 2 */
 
