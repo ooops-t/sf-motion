@@ -34,6 +34,10 @@ void motor_set_power_voltage_sense_gain(motor_t *hmotor, float gain) {
   hmotor->vbus_sense_gain = gain;
 }
 
+void motor_set_power_voltage_sense_offset(motor_t *hmotor, float offset) {
+  hmotor->vbus_sense_offset = offset;
+}
+
 void motor_set_current_sense_offset(motor_t *hmotor, float ia_offset, float ib_offset, float ic_offset) {
   hmotor->ia_offset = ia_offset;
   hmotor->ib_offset = ib_offset;
@@ -73,7 +77,6 @@ void motor_calculate_current(motor_t *hmotor) {
 }
 
 void motor_calculate_power_voltage(motor_t *hmotor) {
-  float gain = hmotor->vbus_sense_gain;
-  hmotor->vbus_actual = (float)*hmotor->p_adc_vbus * gain;
+  hmotor->vbus_actual = (float)*hmotor->p_adc_vbus * hmotor->vbus_sense_gain - hmotor->vbus_sense_offset;
   hmotor->vbus_actual_filtered = second_order_lpf_update(&hmotor->vbus_lpf, hmotor->vbus_actual);
 }

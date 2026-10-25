@@ -28,13 +28,6 @@ typedef struct {
 
     sensor_dir_t dir;
     float count_to_deg_scale;
-    
-	float output_prev_angle;
-	float output_angle_ovf;
-    float output_angle_filtered;
-
-    float angle_alpha_filter;
-    float rpm_alpha_filter;
 
     _Bool spi_transfer_flag;
     _Bool spi_transfer_done_flag;
@@ -45,8 +38,7 @@ typedef struct {
 
 void AS5047P_spi_config(AS5047P_t *encd, int (*spi_transfer)(uint8_t*, uint8_t*, uint16_t), void (*spi_cs)(_Bool));
 void AS5047P_init(AS5047P_t *encd, sensor_dir_t dir, float scale);
-void AS5047P_set_pll_filter(AS5047P_t *encd, float fc, float Ts);
-
+void AS5047P_set_pll_filter(AS5047P_t *encd, float bw_hz, float damping_ratio, float Ts);
 void AS5047P_pll_filter_update(AS5047P_t *encd);
 void AS5047P_update(AS5047P_t *encd);
 void AS5047P_set_spi_transfer_done(AS5047P_t *encd);

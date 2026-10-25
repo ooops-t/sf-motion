@@ -24,7 +24,7 @@ int8_t s_curve_start(s_curve_t *sc, float start_pos, float target_pos) {
     sc->acceleration = 0.0f;
     sc->finished = 0;
 
-    /* Jarak nol -> tidak perlu bergerak sama sekali */
+    /* zero distance */
     if (sc->distance < 1e-9f) {
         sc->Tj1 = sc->Ta = sc->Tv = sc->Td = 0.0f;
         sc->alim = sc->vlim = 0.0f;

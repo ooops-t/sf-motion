@@ -35,8 +35,8 @@ void AS5047P_init(AS5047P_t *encd, sensor_dir_t dir, float scale) {
     encd->count_to_deg_scale = scale;
 }
 
-void AS5047P_set_pll_filter(AS5047P_t *encd, float fc, float Ts) {
-    pll_filter_init(&encd->count_filt, Ts, fc, 0.7f);
+void AS5047P_set_pll_filter(AS5047P_t *encd, float bw_hz, float damping_ratio, float Ts) {
+    pll_filter_init(&encd->count_filt, Ts, bw_hz, damping_ratio);
 }
 
 static int AS5047P_start(AS5047P_t *encd) {

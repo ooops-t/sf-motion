@@ -175,19 +175,26 @@ int can_send_data(uint8_t *data, uint16_t len) {
 /**************************************************************************** */
 
 static void init_motor(void) {
+  // motor pwm
   motor_init_pwm(&hfoc1.motor, &TIM1->CCR1, &TIM1->CCR2, &TIM1->CCR3);
+  // current sense
   motor_init_adc_current_sense(&hfoc1.motor, &adc_buff[0], &adc_buff[1], &adc_buff[2]);
+  // power voltage sense
   motor_init_adc_power_voltage_sense(&hfoc1.motor, &adc_buff[3]);
-  motor_set_current_sense_gain(&hfoc1.motor, (3.3f / 4095.0f) / (0.01f * 20.0f));
-  motor_set_power_voltage_sense_gain(&hfoc1.motor, (3.3f / 4095.0f)*((39.0f + 2.2f) / 2.2f));
-  motor_init_lpf_power_voltage_sense(&hfoc1.motor, 100, BLDC_PWM_FREQ);
+  motor_init_lpf_power_voltage_sense(&hfoc1.motor, hstorage1.memory.voltage_sens.filter_fc, BLDC_PWM_FREQ);
+  // current sense amplifier calibration enable (for internal CSA only)
   CSA_CAL1_GPIO_Port->BSRR = CSA_CAL1_Pin << 16;
 }
 
 static void init_encoder(void) {
   AS5047P_spi_config(&hencd1, motor1_as5047p_spi_transmit, motor1_as5047p_spi_cs);
-  AS5047P_init(&hencd1, SENSOR_DIR_REVERSE, (360.0f / 16383.0f));
-  AS5047P_set_pll_filter(&hencd1, 500.0f, FOC_TS);
+  AS5047P_init(&hencd1, 
+              hstorage1.memory.encoder_config.is_dir_reverse? SENSOR_DIR_REVERSE : SENSOR_DIR_NORMAL, 
+              hstorage1.memory.encoder_config.scale);
+  AS5047P_set_pll_filter(&hencd1, 
+                        hstorage1.memory.encoder_config.pll_filt_bandwidth, 
+                        hstorage1.memory.encoder_config.pll_filt_damping_ratio, 
+                        FOC_TS);
 }
 
 static void init_foc(void) {
@@ -225,27 +232,18 @@ static void init_foc(void) {
   // Speed PID parameter
   pid_reset(&hfoc1.speed_ctrl);
   pid_set_ts(&hfoc1.speed_ctrl, SPEED_TS);
-  pid_set_kd(&hfoc1.speed_ctrl, 0);
-  pid_set_d_filter_fc(&hfoc1.speed_ctrl, 100.0f);
-  pid_set_max_d(&hfoc1.speed_ctrl, 10.0f);
   // Position PID parameter
   pid_reset(&hfoc1.pos_ctrl);
   pid_set_ts(&hfoc1.pos_ctrl, POSITION_TS);
-  pid_set_d_filter_fc(&hfoc1.pos_ctrl, 20.0f);
   pid_set_max_d(&hfoc1.pos_ctrl, 100.0f);
   // field weakening
   pid_reset(&hfoc1.fw_ctrl);
   pid_set_ts(&hfoc1.fw_ctrl, FOC_TS);
 
-  impedance_set_max_out(&hfoc1.impedance_ctrl, 10);
-
-  // foc_motor_init(&hfoc1, hstorage1.memory.motor_config.pole_pairs, 360.0f);
   // foc_set_mode(&hfoc1, FOC_MODE_SENSORED);
   foc_sensorless_init(&hfoc1, BLDC_PWM_FREQ);
 
-  foc_gear_reducer_init(&hfoc1, 1.0f);
-  foc_set_limit_current(&hfoc1, 10.0f);
-  
+  HAL_Delay(50);
   foc_enable(&hfoc1);
 #endif
 }
@@ -308,8 +306,8 @@ void HAL_ADCEx_InjectedConvCpltCallback(ADC_HandleTypeDef* hadc) {
     adc_buff[2] = ADC1->JDR3; // current sense C
     adc_buff[3] = ADC1->JDR4; // power voltage sense
     motor_calculate_power_voltage(&hfoc1.motor);
-    // motor_get_power_voltage(&hfoc1.motor, &hfoc1.v_bus);
-    hfoc1.v_bus = 12.0f;
+    motor_get_power_voltage(&hfoc1.motor, &hfoc1.v_bus);
+    // hfoc1.v_bus = 12.0f;
     AS5047P_pll_filter_update(&hencd1);
     sc_update(&hsc1, FOC_TS);
     foc_update(&hfoc1, FOC_TS);

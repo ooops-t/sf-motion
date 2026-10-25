@@ -20,6 +20,7 @@ typedef struct {
   float ib_offset;
   float ic_offset;
   float vbus_sense_gain;
+  float vbus_sense_offset;
   float vbus_actual;
   float vbus_actual_filtered;
   float ia;
@@ -39,6 +40,7 @@ void motor_init_lpf_current_sense(motor_t *hmotor, float cutoff_freq, float samp
 void motor_init_lpf_power_voltage_sense(motor_t *hmotor, float cutoff_freq, float sampling_freq);
 void motor_set_current_sense_gain(motor_t *hmotor, float gain);
 void motor_set_power_voltage_sense_gain(motor_t *hmotor, float gain);
+void motor_set_power_voltage_sense_offset(motor_t *hmotor, float offset);
 void motor_set_current_sense_offset(motor_t *hmotor, float ia_offset, float ib_offset, float ic_offset);
 void motor_set_pwm(motor_t *hmotor, uint32_t pwm_a, uint32_t pwm_b, uint32_t pwm_c);
 void motor_get_current(motor_t *hmotor, float *ia, float *ib, float *ic);

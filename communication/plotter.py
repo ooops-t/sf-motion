@@ -461,11 +461,6 @@ class LivePlotter(QtWidgets.QMainWindow):
             self.status_label.setText(f"Connected to {port} at {baudrate} baud")
             
             print("Serial connection established successfully")
-
-            for motor in self.motors.values():
-                motor.set_impedance_control(0.4, 0.006)
-                motor.enable_streaming(motor.channel.actual_angle)
-
             
         except serial.SerialException as e:
             QtWidgets.QMessageBox.critical(

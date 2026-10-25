@@ -22,6 +22,7 @@ typedef struct {
 	float flux_linkage;
     uint32_t pwm_freq;
 	float gear_ratio;
+    float max_current_amp;
 }storage_motor_config_t;
 
 typedef struct {
@@ -48,6 +49,12 @@ typedef struct {
 
 typedef struct {
     float kp;
+    float kd;
+    float max_out;
+}storage_impedance_control_t;
+
+typedef struct {
+    float kp;
     float ki;
     float out_min;
     _Bool enable;
@@ -65,9 +72,18 @@ typedef struct {
 }storage_current_sens_t;
 
 typedef struct {
+    float scale; // adc to V
+    float v_offset;
+    float filter_fc; // Hz
+}storage_voltage_sens_t;
+
+typedef struct {
     float scale; // raw value to deg
     float elec_phase_offset_deg;
     float mech_offset_deg;
+    _Bool is_dir_reverse;
+    float pll_filt_bandwidth;
+    float pll_filt_damping_ratio;
     float error_comp_deg[ERROR_LUT_SIZE];
 }storage_encoder_config_t;
 
@@ -80,9 +96,11 @@ typedef struct {
     storage_current_control_t iq_control;
     storage_speed_control_t speed_control;
     storage_position_control_t position_control;
+    storage_impedance_control_t impedance_control;
     storage_field_weakening_t field_weakening;
     storage_mtpa_t mtpa;
     storage_current_sens_t current_sens;
+    storage_voltage_sens_t voltage_sens;
     storage_encoder_config_t encoder_config;
 
     uint8_t valid_EOF;

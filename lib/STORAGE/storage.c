@@ -39,6 +39,7 @@ void storage_default_config(storage_t *s) {
     s->memory.motor_config.flux_linkage = 0;
     s->memory.motor_config.pwm_freq = 20000;
     s->memory.motor_config.gear_ratio = 1.0f;
+    s->memory.motor_config.max_current_amp = 8.0f;
 
     s->memory.id_control.kp = 0.02f;
     s->memory.id_control.ki = 12.0f;
@@ -59,6 +60,10 @@ void storage_default_config(storage_t *s) {
     s->memory.position_control.out_max = 3.0f;
     s->memory.position_control.e_deadband = 0.01f;
     s->memory.position_control.derivative_fc_lpf = 100.0f;
+
+    s->memory.impedance_control.kp = 0.1f;
+    s->memory.impedance_control.kd = 0.006f;
+    s->memory.impedance_control.max_out = 5.0f;
     
     s->memory.field_weakening.kp = 0.1f;
     s->memory.field_weakening.ki = 1.0f;
@@ -72,9 +77,16 @@ void storage_default_config(storage_t *s) {
     s->memory.current_sens.ib_offset = 0.0f;
     s->memory.current_sens.ic_offset = 0.0f;
 
+    s->memory.voltage_sens.scale = (3.3f / 4095.0f)*((39.0f + 2.2f) / 2.2f);
+    s->memory.voltage_sens.v_offset = 0.0f;
+    s->memory.voltage_sens.filter_fc = 10.0f;
+
     s->memory.encoder_config.scale = (360.0f / 16383.0f);
     s->memory.encoder_config.elec_phase_offset_deg = 0;
     s->memory.encoder_config.mech_offset_deg = 0;
+    s->memory.encoder_config.is_dir_reverse = 1;
+    s->memory.encoder_config.pll_filt_bandwidth = 500.0f;
+    s->memory.encoder_config.pll_filt_damping_ratio = 0.7f;
     memset(s->memory.encoder_config.error_comp_deg, 0, sizeof(s->memory.encoder_config.error_comp_deg));
 }
 
@@ -89,6 +101,7 @@ void storage_copy_to_local(storage_t *s, foc_t *hfoc) {
     hfoc->Lq = s->memory.motor_config.Lq;
     hfoc->flux_linkage = s->memory.motor_config.flux_linkage;
     hfoc->gear_ratio = s->memory.motor_config.gear_ratio;
+    hfoc->max_current = s->memory.motor_config.max_current_amp;
 
     hfoc->id_ctrl.kp = s->memory.id_control.kp;
     hfoc->id_ctrl.ki = s->memory.id_control.ki;
@@ -110,17 +123,24 @@ void storage_copy_to_local(storage_t *s, foc_t *hfoc) {
     hfoc->pos_ctrl.e_deadband = s->memory.position_control.e_deadband;
     pid_set_d_filter_fc(&hfoc->pos_ctrl, s->memory.position_control.derivative_fc_lpf);
 
+    impedance_set_stiffness(&hfoc->impedance_ctrl, s->memory.impedance_control.kp);
+    impedance_set_damping(&hfoc->impedance_ctrl, s->memory.impedance_control.kd);
+    impedance_set_max_out(&hfoc->impedance_ctrl, s->memory.impedance_control.max_out);
+
     hfoc->fw_ctrl.kp = s->memory.field_weakening.kp;
     hfoc->fw_ctrl.ki = s->memory.field_weakening.ki;
     pid_set_out_constraint(&hfoc->fw_ctrl, 0.0f, s->memory.field_weakening.out_min);
-    // hfoc->fw_ctrl.out_min = s->memory.field_weakening.out_min;
     hfoc->fw_enable = s->memory.field_weakening.enable;
     
     hfoc->mtpa_enable = s->memory.mtpa.enable;
 
+    hfoc->motor.current_sense_gain = s->memory.current_sens.scale;
     hfoc->motor.ia_offset = s->memory.current_sens.ia_offset;
     hfoc->motor.ib_offset = s->memory.current_sens.ib_offset;
     hfoc->motor.ic_offset = s->memory.current_sens.ic_offset;
+
+    hfoc->motor.vbus_sense_gain = s->memory.voltage_sens.scale;
+    hfoc->motor.vbus_sense_offset = s->memory.voltage_sens.v_offset;
 }
 
 void storage_copy_from_local(storage_t *s, foc_t *hfoc) {
@@ -134,6 +154,7 @@ void storage_copy_from_local(storage_t *s, foc_t *hfoc) {
     s->memory.motor_config.Lq = hfoc->Lq;
     s->memory.motor_config.flux_linkage = hfoc->flux_linkage;
     s->memory.motor_config.gear_ratio = hfoc->gear_ratio;
+    s->memory.motor_config.max_current_amp = hfoc->max_current;
 
     // ID Control
     s->memory.id_control.kp = hfoc->id_ctrl.kp;
@@ -159,6 +180,11 @@ void storage_copy_from_local(storage_t *s, foc_t *hfoc) {
     s->memory.position_control.e_deadband = hfoc->pos_ctrl.e_deadband;
     s->memory.position_control.derivative_fc_lpf = hfoc->pos_ctrl.d_fc_lpf;
 
+    // Impedance Control
+    s->memory.impedance_control.kp = impedance_get_stiffness(&hfoc->impedance_ctrl);
+    s->memory.impedance_control.kd = impedance_get_damping(&hfoc->impedance_ctrl);
+    s->memory.impedance_control.max_out = impedance_get_max_out(&hfoc->impedance_ctrl);
+
     // Field Weakening
     s->memory.field_weakening.kp = hfoc->fw_ctrl.kp;
     s->memory.field_weakening.ki = hfoc->fw_ctrl.ki;
@@ -168,8 +194,12 @@ void storage_copy_from_local(storage_t *s, foc_t *hfoc) {
     // MTPA
     s->memory.mtpa.enable = hfoc->mtpa_enable;
 
-    // Current Sensor Offsets
+    // Current Sensor
+    s->memory.current_sens.scale = hfoc->motor.current_sense_gain;
     s->memory.current_sens.ia_offset = hfoc->motor.ia_offset;
     s->memory.current_sens.ib_offset = hfoc->motor.ib_offset;
     s->memory.current_sens.ic_offset = hfoc->motor.ic_offset;
+
+    s->memory.voltage_sens.scale = hfoc->motor.vbus_sense_gain;
+    s->memory.voltage_sens.v_offset = hfoc->motor.vbus_sense_offset;
 }
