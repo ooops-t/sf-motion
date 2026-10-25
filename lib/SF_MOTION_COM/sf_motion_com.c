@@ -150,6 +150,12 @@ static int8_t get_version(sfm_com_t *com, void *data) {
 SFM_GETTER(get_device_id, *(uint8_t *)data = (uint8_t)com->pstorage->memory.general.device_id)
 SFM_SETTER(set_device_id, com->pstorage->memory.general.device_id = (uint32_t)*(uint8_t *)data)
 
+static int8_t device_system_reset(sfm_com_t *com, void *data) {
+  (void) data;
+  if (com->system_reset) com->system_reset();
+  return 0;
+}
+
 static int8_t set_default_config(sfm_com_t *com, void *data) {
   (void) data;
   storage_default_config(com->pstorage);
@@ -216,6 +222,15 @@ SFM_SETTER(set_Lq, foc_set_motor_Lq(com->pfoc, *(float *)data))
 SFM_GETTER(get_flux_linkage, *(float *)data = foc_get_motor_flux_linkage(com->pfoc))
 SFM_SETTER(set_flux_linkage, foc_set_motor_flux_linkage(com->pfoc, *(float *)data))
 
+SFM_GETTER(get_pwm_freq, *(uint32_t *)data = com->pstorage->memory.motor_config.pwm_freq)
+SFM_SETTER(set_pwm_freq, com->pstorage->memory.motor_config.pwm_freq = *(uint32_t *)data)
+
+SFM_GETTER(get_gear_ratio, *(float *)data = com->pfoc->gear_ratio)
+SFM_SETTER(set_gear_ratio, com->pfoc->gear_ratio = *(float *)data)
+
+SFM_GETTER(get_limit_current, *(float *)data = com->pfoc->max_current)
+SFM_SETTER(set_limit_current, com->pfoc->max_current = *(float *)data)
+
 /************************************************************************************************ */
 
 SFM_GETTER(get_id_kp, *(float *)data = pid_get_kp(&com->pfoc->id_ctrl))
@@ -266,6 +281,17 @@ SFM_SETTER(set_position_deadband, pid_set_deadband(&com->pfoc->pos_ctrl, *(float
 SFM_GETTER(get_position_d_filter_fc, *(float *)data = pid_get_d_filter_fc(&com->pfoc->pos_ctrl))
 SFM_SETTER(set_position_d_filter_fc, pid_set_d_filter_fc(&com->pfoc->pos_ctrl, *(float *)data))
 
+SFM_GETTER(get_impedance_stiffness, *(float *)data = impedance_get_stiffness(&com->pfoc->impedance_ctrl))
+SFM_SETTER(set_impedance_stiffness, impedance_set_stiffness(&com->pfoc->impedance_ctrl, *(float *)data))
+
+SFM_GETTER(get_impedance_damping, *(float *)data = impedance_get_damping(&com->pfoc->impedance_ctrl))
+SFM_SETTER(set_impedance_damping, impedance_set_damping(&com->pfoc->impedance_ctrl, *(float *)data))
+
+SFM_GETTER(get_cff_ref, *(float *)data = com->pfoc->cff_ref)
+SFM_SETTER(set_cff_ref, com->pfoc->cff_ref = *(float *)data)
+
+/************************************************************************************************ */
+
 SFM_GETTER(get_fw_kp, *(float *)data = pid_get_kp(&com->pfoc->fw_ctrl))
 SFM_SETTER(set_fw_kp, pid_set_kp(&com->pfoc->fw_ctrl, *(float *)data))
 
@@ -280,6 +306,26 @@ SFM_SETTER(set_fw_enable, foc_set_fw_enable(com->pfoc, (_Bool)*(uint8_t *)data))
 
 SFM_GETTER(get_mtpa_enable, *(uint8_t *)data = (uint8_t)foc_get_mtpa_enable(com->pfoc))
 SFM_SETTER(set_mtpa_enable, foc_set_mtpa_enable(com->pfoc, (_Bool)*(uint8_t *)data))
+
+/************************************************************************************************ */
+
+SFM_GETTER(get_cur_sense_scale, *(float *)data = com->pfoc->motor.current_sense_gain)
+SFM_SETTER(set_cur_sense_scale, com->pfoc->motor.current_sense_gain = *(float *)data)
+
+SFM_GETTER(get_cur_sense_ia_offset, *(float *)data = com->pfoc->motor.ia_offset)
+SFM_SETTER(set_cur_sense_ia_offset, com->pfoc->motor.ia_offset = *(float *)data)
+
+SFM_GETTER(get_cur_sense_ib_offset, *(float *)data = com->pfoc->motor.ib_offset)
+SFM_SETTER(set_cur_sense_ib_offset, com->pfoc->motor.ib_offset = *(float *)data)
+
+SFM_GETTER(get_cur_sense_ic_offset, *(float *)data = com->pfoc->motor.ic_offset)
+SFM_SETTER(set_cur_sense_ic_offset, com->pfoc->motor.ic_offset = *(float *)data)
+
+SFM_GETTER(get_vbus_sense_scale, *(float *)data = com->pfoc->motor.vbus_sense_gain)
+SFM_SETTER(set_vbus_sense_scale, com->pfoc->motor.vbus_sense_gain = *(float *)data)
+
+SFM_GETTER(get_vbus_sense_offset, *(float *)data = com->pfoc->motor.vbus_sense_offset)
+SFM_SETTER(set_vbus_sense_offset, com->pfoc->motor.vbus_sense_offset = *(float *)data)
 
 /************************************************************************************************ */
 
@@ -331,14 +377,7 @@ SFM_GETTER(get_m_angle_rad, *(float *)data = com->pfoc->m_angle_rad)
 SFM_GETTER(get_m_angle_rad_comp, *(float *)data = com->pfoc->m_angle_rad_comp)
 SFM_GETTER(get_v_bus, *(float *)data = com->pfoc->v_bus)
 
-SFM_GETTER(get_impedance_stiffness, *(float *)data = impedance_get_stiffness(&com->pfoc->impedance_ctrl))
-SFM_SETTER(set_impedance_stiffness, impedance_set_stiffness(&com->pfoc->impedance_ctrl, *(float *)data))
-
-SFM_GETTER(get_impedance_damping, *(float *)data = impedance_get_damping(&com->pfoc->impedance_ctrl))
-SFM_SETTER(set_impedance_damping, impedance_set_damping(&com->pfoc->impedance_ctrl, *(float *)data))
-
-SFM_GETTER(get_cff_ref, *(float *)data = com->pfoc->cff_ref)
-SFM_SETTER(set_cff_ref, com->pfoc->cff_ref = *(float *)data)
+/************************************************************************************************ */
 
 SFM_GETTER(get_trajectory_v_max, *(float *)data = com->pfoc->trajectory.v_max)
 SFM_SETTER(set_trajectory_v_max, s_curve_set_v_max(&com->pfoc->trajectory, *(float *)data))
@@ -367,7 +406,7 @@ sfm_com_register_handler_t sfm_com_reg[] = {
   {NULL, NULL, SFM_COM_STREAM_DIS, 0},                                                      // 3
   {NULL, NULL, SFM_COM_STREAM_DIS, 0},                                                      // 4
   {NULL, NULL, SFM_COM_STREAM_DIS, 0},                                                      // 5
-  {NULL, NULL, SFM_COM_STREAM_DIS, 0},                                                      // 6
+  {NULL, device_system_reset, SFM_COM_STREAM_DIS, 0},                                       // 6
   {NULL, set_default_config, SFM_COM_STREAM_DIS, 0},                                        // 7
   {NULL, set_save_config, SFM_COM_STREAM_DIS, 0},                                           // 8
   {NULL, set_start_measure_resistance, SFM_COM_STREAM_DIS, 0},                              // 9
@@ -383,64 +422,74 @@ sfm_com_register_handler_t sfm_com_reg[] = {
   {get_Ld, set_Ld, SFM_COM_STREAM_DIS, sizeof(float)},                                      // 18
   {get_Lq, set_Lq, SFM_COM_STREAM_DIS, sizeof(float)},                                      // 19
   {get_flux_linkage, set_flux_linkage, SFM_COM_STREAM_DIS, sizeof(float)},                  // 20
+  {get_pwm_freq, set_pwm_freq, SFM_COM_STREAM_DIS, sizeof(uint32_t)},                          // 21
+  {get_gear_ratio, set_gear_ratio, SFM_COM_STREAM_DIS, sizeof(float)},                      // 22
+  {get_limit_current, set_limit_current, SFM_COM_STREAM_DIS, sizeof(float)},                // 23
        
-  {get_id_kp, set_id_kp, SFM_COM_STREAM_DIS, sizeof(float)},                                // 21
-  {get_id_ki, set_id_ki, SFM_COM_STREAM_DIS, sizeof(float)},                                // 22
-  {get_id_deadband, set_id_deadband, SFM_COM_STREAM_DIS, sizeof(float)},                    // 23
-  {get_iq_kp, set_iq_kp, SFM_COM_STREAM_DIS, sizeof(float)},                                // 24
-  {get_iq_ki, set_iq_ki, SFM_COM_STREAM_DIS, sizeof(float)},                                // 25
-  {get_iq_deadband, set_iq_deadband, SFM_COM_STREAM_DIS, sizeof(float)},                    // 26
-  {get_speed_kp, set_speed_kp, SFM_COM_STREAM_DIS, sizeof(float)},                          // 27
-  {get_speed_ki, set_speed_ki, SFM_COM_STREAM_DIS, sizeof(float)},                          // 28
-  {get_speed_out_max, set_speed_out_max, SFM_COM_STREAM_DIS, sizeof(float)},                // 29
-  {get_speed_deadband, set_speed_deadband, SFM_COM_STREAM_DIS, sizeof(float)},              // 30
-  {get_position_kp, set_position_kp, SFM_COM_STREAM_DIS, sizeof(float)},                    // 31
-  {get_position_ki, set_position_ki, SFM_COM_STREAM_DIS, sizeof(float)},                    // 32
-  {get_position_kd, set_position_kd, SFM_COM_STREAM_DIS, sizeof(float)},                    // 33
-  {get_position_out_max, set_position_out_max, SFM_COM_STREAM_DIS, sizeof(float)},          // 34
-  {get_position_deadband, set_position_deadband, SFM_COM_STREAM_DIS, sizeof(float)},        // 35
-  {get_position_d_filter_fc, set_position_d_filter_fc, SFM_COM_STREAM_DIS, sizeof(float)},  // 36
-  {get_fw_kp, set_fw_kp, SFM_COM_STREAM_DIS, sizeof(float)},                                // 37
-  {get_fw_ki, set_fw_ki, SFM_COM_STREAM_DIS, sizeof(float)},                                // 38
-  {get_fw_out_min, set_fw_out_min, SFM_COM_STREAM_DIS, sizeof(float)},                      // 39
-  {get_fw_enable, set_fw_enable, SFM_COM_STREAM_DIS, sizeof(uint8_t)},                      // 40
-  {get_mtpa_enable, set_mtpa_enable, SFM_COM_STREAM_DIS, sizeof(uint8_t)},                  // 41
+  {get_id_kp, set_id_kp, SFM_COM_STREAM_DIS, sizeof(float)},                                // 24
+  {get_id_ki, set_id_ki, SFM_COM_STREAM_DIS, sizeof(float)},                                // 25
+  {get_id_deadband, set_id_deadband, SFM_COM_STREAM_DIS, sizeof(float)},                    // 26
+  {get_iq_kp, set_iq_kp, SFM_COM_STREAM_DIS, sizeof(float)},                                // 27
+  {get_iq_ki, set_iq_ki, SFM_COM_STREAM_DIS, sizeof(float)},                                // 28
+  {get_iq_deadband, set_iq_deadband, SFM_COM_STREAM_DIS, sizeof(float)},                    // 29
+  {get_speed_kp, set_speed_kp, SFM_COM_STREAM_DIS, sizeof(float)},                          // 30
+  {get_speed_ki, set_speed_ki, SFM_COM_STREAM_DIS, sizeof(float)},                          // 31
+  {get_speed_out_max, set_speed_out_max, SFM_COM_STREAM_DIS, sizeof(float)},                // 32
+  {get_speed_deadband, set_speed_deadband, SFM_COM_STREAM_DIS, sizeof(float)},              // 33
+  {get_position_kp, set_position_kp, SFM_COM_STREAM_DIS, sizeof(float)},                    // 34
+  {get_position_ki, set_position_ki, SFM_COM_STREAM_DIS, sizeof(float)},                    // 35
+  {get_position_kd, set_position_kd, SFM_COM_STREAM_DIS, sizeof(float)},                    // 36
+  {get_position_out_max, set_position_out_max, SFM_COM_STREAM_DIS, sizeof(float)},          // 37
+  {get_position_deadband, set_position_deadband, SFM_COM_STREAM_DIS, sizeof(float)},        // 38
+  {get_position_d_filter_fc, set_position_d_filter_fc, SFM_COM_STREAM_DIS, sizeof(float)},  // 39
+  {get_impedance_stiffness, set_impedance_stiffness, SFM_COM_STREAM_DIS, sizeof(float)},    // 40
+  {get_impedance_damping, set_impedance_damping, SFM_COM_STREAM_DIS, sizeof(float)},        // 41
+  {get_cff_ref, set_cff_ref, SFM_COM_STREAM_ENA, sizeof(float)},                            // 42
 
-  {get_current_set_point, set_current_set_point, SFM_COM_STREAM_ENA, sizeof(float)},        // 42
-  {get_speed_set_point, set_speed_set_point, SFM_COM_STREAM_ENA, sizeof(float)},            // 43
-  {get_position_set_point, set_position_set_point, SFM_COM_STREAM_ENA, sizeof(float)},      // 44
-  {get_ia, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                        // 45
-  {get_ib, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                        // 46
-  {get_ic, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                        // 47
-  {get_i_alpha, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                   // 48
-  {get_i_beta, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                    // 49
-  {get_id, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                        // 50
-  {get_iq, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                        // 51
-  {get_va, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                        // 52
-  {get_vb, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                        // 53
-  {get_vc, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                        // 54
-  {get_v_alpha, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                   // 55
-  {get_v_beta, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                    // 56
-  {get_vd, set_vd, SFM_COM_STREAM_ENA, sizeof(float)},                                      // 57
-  {get_vq, set_vq, SFM_COM_STREAM_ENA, sizeof(float)},                                      // 58
-  {get_e_rad, set_e_rad, SFM_COM_STREAM_ENA, sizeof(float)},                                // 59
-  {get_actual_rpm, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                // 60
-  {get_actual_angle, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                              // 61
-  {get_Is_ref, set_Is_ref, SFM_COM_STREAM_ENA, sizeof(float)},                              // 62
-  {get_rpm_ref, set_rpm_ref, SFM_COM_STREAM_ENA, sizeof(float)},                            // 63
-  {get_pos_ref, set_pos_ref, SFM_COM_STREAM_ENA, sizeof(float)},                            // 64
-  {get_m_angle_rad, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                               // 65
-  {get_m_angle_rad_comp, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                          // 66
-  {get_v_bus, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                     // 67
+  {get_fw_kp, set_fw_kp, SFM_COM_STREAM_DIS, sizeof(float)},                                // 43
+  {get_fw_ki, set_fw_ki, SFM_COM_STREAM_DIS, sizeof(float)},                                // 44
+  {get_fw_out_min, set_fw_out_min, SFM_COM_STREAM_DIS, sizeof(float)},                      // 45
+  {get_fw_enable, set_fw_enable, SFM_COM_STREAM_DIS, sizeof(uint8_t)},                      // 46
+  {get_mtpa_enable, set_mtpa_enable, SFM_COM_STREAM_DIS, sizeof(uint8_t)},                  // 47
   
-  {get_impedance_stiffness, set_impedance_stiffness, SFM_COM_STREAM_DIS, sizeof(float)},    // 68
-  {get_impedance_damping, set_impedance_damping, SFM_COM_STREAM_DIS, sizeof(float)},        // 69
-  {get_cff_ref, set_cff_ref, SFM_COM_STREAM_ENA, sizeof(float)},                            // 70
+  {get_cur_sense_scale, set_cur_sense_scale, SFM_COM_STREAM_DIS, sizeof(float)},            // 48
+  {get_cur_sense_ia_offset, set_cur_sense_ia_offset, SFM_COM_STREAM_DIS, sizeof(float)},    // 49
+  {get_cur_sense_ib_offset, set_cur_sense_ib_offset, SFM_COM_STREAM_DIS, sizeof(float)},    // 50
+  {get_cur_sense_ic_offset, set_cur_sense_ic_offset, SFM_COM_STREAM_DIS, sizeof(float)},    // 51
+  {get_vbus_sense_scale, set_vbus_sense_scale, SFM_COM_STREAM_DIS, sizeof(float)},          // 52
+  {get_vbus_sense_offset, set_vbus_sense_offset, SFM_COM_STREAM_DIS, sizeof(float)},        // 53
 
-  {get_trajectory_v_max, set_trajectory_v_max, SFM_COM_STREAM_DIS, sizeof(float)},                          // 71
-  {get_trajectory_a_max, set_trajectory_a_max, SFM_COM_STREAM_DIS, sizeof(float)},                          // 72
-  {get_trajectory_j_max, set_trajectory_j_max, SFM_COM_STREAM_DIS, sizeof(float)},                          // 73
-  {NULL, set_trajectory_target_pos, SFM_COM_STREAM_DIS, sizeof(float)},                     // 74
+  {get_current_set_point, set_current_set_point, SFM_COM_STREAM_ENA, sizeof(float)},        // 54
+  {get_speed_set_point, set_speed_set_point, SFM_COM_STREAM_ENA, sizeof(float)},            // 55
+  {get_position_set_point, set_position_set_point, SFM_COM_STREAM_ENA, sizeof(float)},      // 56
+  {get_ia, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                        // 57
+  {get_ib, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                        // 58
+  {get_ic, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                        // 59
+  {get_i_alpha, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                   // 60
+  {get_i_beta, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                    // 61
+  {get_id, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                        // 62
+  {get_iq, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                        // 63
+  {get_va, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                        // 64
+  {get_vb, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                        // 65
+  {get_vc, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                        // 66
+  {get_v_alpha, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                   // 67
+  {get_v_beta, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                    // 68
+  {get_vd, set_vd, SFM_COM_STREAM_ENA, sizeof(float)},                                      // 69
+  {get_vq, set_vq, SFM_COM_STREAM_ENA, sizeof(float)},                                      // 70
+  {get_e_rad, set_e_rad, SFM_COM_STREAM_ENA, sizeof(float)},                                // 71
+  {get_actual_rpm, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                // 72
+  {get_actual_angle, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                              // 73
+  {get_Is_ref, set_Is_ref, SFM_COM_STREAM_ENA, sizeof(float)},                              // 74
+  {get_rpm_ref, set_rpm_ref, SFM_COM_STREAM_ENA, sizeof(float)},                            // 75
+  {get_pos_ref, set_pos_ref, SFM_COM_STREAM_ENA, sizeof(float)},                            // 76
+  {get_m_angle_rad, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                               // 77
+  {get_m_angle_rad_comp, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                          // 78
+  {get_v_bus, NULL, SFM_COM_STREAM_ENA, sizeof(float)},                                     // 79
+  
+  {get_trajectory_v_max, set_trajectory_v_max, SFM_COM_STREAM_DIS, sizeof(float)},          // 80
+  {get_trajectory_a_max, set_trajectory_a_max, SFM_COM_STREAM_DIS, sizeof(float)},          // 81
+  {get_trajectory_j_max, set_trajectory_j_max, SFM_COM_STREAM_DIS, sizeof(float)},          // 82
+  {NULL, set_trajectory_target_pos, SFM_COM_STREAM_DIS, sizeof(float)},                     // 83
 };
 
 const int SFM_COM_MAX = sizeof(sfm_com_reg) / sizeof(sfm_com_register_handler_t);
@@ -462,11 +511,16 @@ static int8_t sfm_com_handle_all_parameters(sfm_com_t *com) {
 
 /****************************************************************************** */
 
-void sfm_com_init(sfm_com_t *com, int (*recv_data)(uint8_t*, uint16_t), int (*send_data)(uint8_t*, uint16_t), uint32_t (*get_tick_ms)(void),
+void sfm_com_init(sfm_com_t *com, 
+                  int (*recv_data)(uint8_t*, uint16_t), 
+                  int (*send_data)(uint8_t*, uint16_t), 
+                  uint32_t (*get_tick_ms)(void),
+                  void (*system_reset)(void),
                   foc_t *pfoc, storage_t *pstorage, self_commissioning_t *psc) {
   com->recv_data = recv_data;
   com->send_data = send_data;
   com->get_tick_ms = get_tick_ms;
+  com->system_reset = system_reset;
   com->pfoc = pfoc;
   com->pstorage = pstorage;
   com->psc = psc;

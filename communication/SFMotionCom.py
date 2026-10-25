@@ -153,6 +153,8 @@ class SFMotion:
         major, minor, patch = struct.unpack("<3B", response_data)
         return major, minor, patch
     
+    # ----------------------------------------------------------------------------------
+    
     def set_impedance_control(self, kp, kd):
         self.set_impedance_stiffness(kp)
         self.set_impedance_damping(kd)

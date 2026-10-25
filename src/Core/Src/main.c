@@ -216,12 +216,21 @@ static void init_foc(void) {
 
   foc_inverter_init(&hfoc1, motor1_inverter_enable, motor1_inverter_disable, motor1_get_pwm_res);
   foc_feedback_sensor_init(&hfoc1, motor1_as5047p_get_mech_deg, motor1_as5047p_get_rpm, hstorage1.memory.encoder_config.error_comp_deg);
-  foc_speed_feedback_sensor_init(&hfoc1, 500.0f, FOC_TS);
 
   link_can_init(hfoc1.motor.device_id);
   sfm_usb_com_init(&hsfm_usb_com, usb_send_data);
-  sfm_com_init(&husb_com, sfm_com_usb_recv_data, sfm_com_usb_send_data, HAL_GetTick, &hfoc1, &hstorage1, &hsc1);
-  sfm_com_init(&hcan_com, can_recv_data, can_send_data, HAL_GetTick, &hfoc1, &hstorage1, &hsc1);
+  sfm_com_init(&husb_com, 
+              sfm_com_usb_recv_data, 
+              sfm_com_usb_send_data, 
+              HAL_GetTick,
+              link_system_reset,
+              &hfoc1, &hstorage1, &hsc1);
+  sfm_com_init(&hcan_com, 
+              can_recv_data, 
+              can_send_data, 
+              HAL_GetTick,
+              link_system_reset,
+              &hfoc1, &hstorage1, &hsc1);
 
   // Id PI parameter
   pid_reset(&hfoc1.id_ctrl);
@@ -307,7 +316,6 @@ void HAL_ADCEx_InjectedConvCpltCallback(ADC_HandleTypeDef* hadc) {
     adc_buff[3] = ADC1->JDR4; // power voltage sense
     motor_calculate_power_voltage(&hfoc1.motor);
     motor_get_power_voltage(&hfoc1.motor, &hfoc1.v_bus);
-    // hfoc1.v_bus = 12.0f;
     AS5047P_pll_filter_update(&hencd1);
     sc_update(&hsc1, FOC_TS);
     foc_update(&hfoc1, FOC_TS);
@@ -370,7 +378,6 @@ int main(void)
 #endif
 
   init_foc();
-  uint32_t tick = HAL_GetTick();
 
   /* USER CODE END 2 */
 

@@ -10,7 +10,7 @@
 // versioning (0 - 255)
 #define SF_MOTION_MAJOR_VERSION  0
 #define SF_MOTION_MINOR_VERSION  1
-#define SF_MOTION_PATCH_VERSION  0
+#define SF_MOTION_PATCH_VERSION  1
 
 
 #endif /* _DEVICE_CONFIG_H */

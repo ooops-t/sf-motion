@@ -32,11 +32,6 @@ void foc_feedback_sensor_init(foc_t *hfoc, float (*get_mech_degre)(void), float 
     hfoc->p_abs_encoder_error_comp_deg = p_abs_encoder_error_LUT;
 }
 
-void foc_speed_feedback_sensor_init(foc_t *hfoc, float fc, float Ts) {
-    second_order_lpf_init(&hfoc->e_omega_lpf, fc, 1.0f/Ts);
-    pll_filter_init(&hfoc->e_omega_filt, Ts, fc, 0.7f);
-}
-
 void foc_motor_init(foc_t *hfoc, uint8_t pole_pairs, float kv) {
 	if (hfoc == NULL || pole_pairs == 0 || kv <= 0) {
 		return;

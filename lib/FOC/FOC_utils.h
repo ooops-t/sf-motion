@@ -149,9 +149,6 @@ typedef struct {
 
 	SecondOrderLPF id_lpf;
 	SecondOrderLPF iq_lpf;
-	SecondOrderLPF e_omega_lpf;
-
-	pll_filter_t e_omega_filt;
 
 	//polarity detection
 	p_det_state_t pd_state;
@@ -180,7 +177,6 @@ typedef struct {
 
 void foc_inverter_init(foc_t *hfoc, void (*enable_motor)(void), void (*disable_motor)(void), uint32_t (*get_pwm_res)(void));
 void foc_feedback_sensor_init(foc_t *hfoc, float (*get_mech_degre)(void), float (*get_rpm)(void), float *p_abs_encoder_error_LUT);
-void foc_speed_feedback_sensor_init(foc_t *hfoc, float fc, float Ts);
 void foc_motor_init(foc_t *hfoc, uint8_t pole_pairs, float kv);
 void foc_gear_reducer_init(foc_t *hfoc, float ratio);
 void foc_set_limit_current(foc_t *hfoc, float i_limit);

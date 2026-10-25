@@ -61,12 +61,17 @@ typedef struct {
   int (*recv_data)(uint8_t*, uint16_t);
   int (*send_data)(uint8_t*, uint16_t);
   uint32_t (*get_tick_ms)(void);
+  void (*system_reset)(void);
 }sfm_com_t;
 
 typedef int8_t (*sfm_com_read_t)(sfm_com_t *com, void *data);
 typedef int8_t (*sfm_com_write_t)(sfm_com_t *com, void *data);
 
-void sfm_com_init(sfm_com_t *com, int (*recv_data)(uint8_t*, uint16_t), int (*send_data)(uint8_t*, uint16_t), uint32_t (*get_tick_ms)(void),
+void sfm_com_init(sfm_com_t *com, 
+                  int (*recv_data)(uint8_t*, uint16_t), 
+                  int (*send_data)(uint8_t*, uint16_t), 
+                  uint32_t (*get_tick_ms)(void),
+                  void (*system_reset)(void),
                   foc_t *pfoc, storage_t *pstorage, self_commissioning_t *psc);
 void sfm_com_update(sfm_com_t *com);
 

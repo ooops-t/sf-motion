@@ -9,6 +9,14 @@
       "streaming": false
     },
     {
+      "address": 6,
+      "name": "system_reset",
+      "format": null,
+      "read": false,
+      "write": true,
+      "streaming": false
+    },
+    {
       "address": 7,
       "name": "default_config",
       "format": null,
@@ -56,7 +64,6 @@
       "write": true,
       "streaming": false
     },
-
     {
       "address": 13,
       "name": "foc_mode",
@@ -121,18 +128,17 @@
       "write": true,
       "streaming": false
     },
-
     {
       "address": 21,
-      "name": "id_kp",
-      "format": "<f",
+      "name": "pwm_freq",
+      "format": "<I",
       "read": true,
       "write": true,
       "streaming": false
     },
     {
       "address": 22,
-      "name": "id_ki",
+      "name": "gear_ratio",
       "format": "<f",
       "read": true,
       "write": true,
@@ -140,7 +146,7 @@
     },
     {
       "address": 23,
-      "name": "id_deadband",
+      "name": "limit_current",
       "format": "<f",
       "read": true,
       "write": true,
@@ -148,7 +154,7 @@
     },
     {
       "address": 24,
-      "name": "iq_kp",
+      "name": "id_kp",
       "format": "<f",
       "read": true,
       "write": true,
@@ -156,7 +162,7 @@
     },
     {
       "address": 25,
-      "name": "iq_ki",
+      "name": "id_ki",
       "format": "<f",
       "read": true,
       "write": true,
@@ -164,7 +170,7 @@
     },
     {
       "address": 26,
-      "name": "iq_deadband",
+      "name": "id_deadband",
       "format": "<f",
       "read": true,
       "write": true,
@@ -172,7 +178,7 @@
     },
     {
       "address": 27,
-      "name": "speed_kp",
+      "name": "iq_kp",
       "format": "<f",
       "read": true,
       "write": true,
@@ -180,7 +186,7 @@
     },
     {
       "address": 28,
-      "name": "speed_ki",
+      "name": "iq_ki",
       "format": "<f",
       "read": true,
       "write": true,
@@ -188,7 +194,7 @@
     },
     {
       "address": 29,
-      "name": "speed_out_max",
+      "name": "iq_deadband",
       "format": "<f",
       "read": true,
       "write": true,
@@ -196,7 +202,7 @@
     },
     {
       "address": 30,
-      "name": "speed_deadband",
+      "name": "speed_kp",
       "format": "<f",
       "read": true,
       "write": true,
@@ -204,7 +210,7 @@
     },
     {
       "address": 31,
-      "name": "position_kp",
+      "name": "speed_ki",
       "format": "<f",
       "read": true,
       "write": true,
@@ -212,7 +218,7 @@
     },
     {
       "address": 32,
-      "name": "position_ki",
+      "name": "speed_out_max",
       "format": "<f",
       "read": true,
       "write": true,
@@ -220,7 +226,7 @@
     },
     {
       "address": 33,
-      "name": "position_kd",
+      "name": "speed_deadband",
       "format": "<f",
       "read": true,
       "write": true,
@@ -228,7 +234,7 @@
     },
     {
       "address": 34,
-      "name": "position_out_max",
+      "name": "position_kp",
       "format": "<f",
       "read": true,
       "write": true,
@@ -236,7 +242,7 @@
     },
     {
       "address": 35,
-      "name": "position_deadband",
+      "name": "position_ki",
       "format": "<f",
       "read": true,
       "write": true,
@@ -244,7 +250,7 @@
     },
     {
       "address": 36,
-      "name": "position_d_filter_fc",
+      "name": "position_kd",
       "format": "<f",
       "read": true,
       "write": true,
@@ -252,7 +258,7 @@
     },
     {
       "address": 37,
-      "name": "fw_kp",
+      "name": "position_out_max",
       "format": "<f",
       "read": true,
       "write": true,
@@ -260,7 +266,7 @@
     },
     {
       "address": 38,
-      "name": "fw_ki",
+      "name": "position_deadband",
       "format": "<f",
       "read": true,
       "write": true,
@@ -268,7 +274,7 @@
     },
     {
       "address": 39,
-      "name": "fw_out_min",
+      "name": "position_d_filter_fc",
       "format": "<f",
       "read": true,
       "write": true,
@@ -276,231 +282,6 @@
     },
     {
       "address": 40,
-      "name": "fw_enable",
-      "format": "<B",
-      "read": true,
-      "write": true,
-      "streaming": false
-    },
-    {
-      "address": 41,
-      "name": "mtpa_enable",
-      "format": "<B",
-      "read": true,
-      "write": true,
-      "streaming": false
-    },
-
-    {
-      "address": 42,
-      "name": "current_set_point",
-      "format": "<f",
-      "read": true,
-      "write": true,
-      "streaming": true
-    },
-    {
-      "address": 43,
-      "name": "speed_set_point",
-      "format": "<f",
-      "read": true,
-      "write": true,
-      "streaming": true
-    },
-    {
-      "address": 44,
-      "name": "position_set_point",
-      "format": "<f",
-      "read": true,
-      "write": true,
-      "streaming": true
-    },
-    {
-      "address": 45,
-      "name": "ia",
-      "format": "<f",
-      "read": true,
-      "write": false,
-      "streaming": true
-    },
-    {
-      "address": 46,
-      "name": "ib",
-      "format": "<f",
-      "read": true,
-      "write": false,
-      "streaming": true
-    },
-    {
-      "address": 47,
-      "name": "ic",
-      "format": "<f",
-      "read": true,
-      "write": false,
-      "streaming": true
-    },
-    {
-      "address": 48,
-      "name": "i_alpha",
-      "format": "<f",
-      "read": true,
-      "write": false,
-      "streaming": true
-    },
-    {
-      "address": 49,
-      "name": "i_beta",
-      "format": "<f",
-      "read": true,
-      "write": false,
-      "streaming": true
-    },
-    {
-      "address": 50,
-      "name": "id",
-      "format": "<f",
-      "read": true,
-      "write": false,
-      "streaming": true
-    },
-    {
-      "address": 51,
-      "name": "iq",
-      "format": "<f",
-      "read": true,
-      "write": false,
-      "streaming": true
-    },
-    {
-      "address": 52,
-      "name": "va",
-      "format": "<f",
-      "read": true,
-      "write": false,
-      "streaming": true
-    },
-    {
-      "address": 53,
-      "name": "vb",
-      "format": "<f",
-      "read": true,
-      "write": false,
-      "streaming": true
-    },
-    {
-      "address": 54,
-      "name": "vc",
-      "format": "<f",
-      "read": true,
-      "write": false,
-      "streaming": true
-    },
-    {
-      "address": 55,
-      "name": "v_alpha",
-      "format": "<f",
-      "read": true,
-      "write": false,
-      "streaming": true
-    },
-    {
-      "address": 56,
-      "name": "v_beta",
-      "format": "<f",
-      "read": true,
-      "write": false,
-      "streaming": true
-    },
-    {
-      "address": 57,
-      "name": "vd",
-      "format": "<f",
-      "read": true,
-      "write": true,
-      "streaming": true
-    },
-    {
-      "address": 58,
-      "name": "vq",
-      "format": "<f",
-      "read": true,
-      "write": true,
-      "streaming": true
-    },
-    {
-      "address": 59,
-      "name": "e_rad",
-      "format": "<f",
-      "read": true,
-      "write": true,
-      "streaming": true
-    },
-    {
-      "address": 60,
-      "name": "actual_rpm",
-      "format": "<f",
-      "read": true,
-      "write": false,
-      "streaming": true
-    },
-    {
-      "address": 61,
-      "name": "actual_angle",
-      "format": "<f",
-      "read": true,
-      "write": false,
-      "streaming": true
-    },
-    {
-      "address": 62,
-      "name": "is_ref",
-      "format": "<f",
-      "read": true,
-      "write": true,
-      "streaming": true
-    },
-    {
-      "address": 63,
-      "name": "rpm_ref",
-      "format": "<f",
-      "read": true,
-      "write": true,
-      "streaming": true
-    },
-    {
-      "address": 64,
-      "name": "pos_ref",
-      "format": "<f",
-      "read": true,
-      "write": true,
-      "streaming": true
-    },
-    {
-      "address": 65,
-      "name": "m_angle_rad",
-      "format": "<f",
-      "read": true,
-      "write": false,
-      "streaming": true
-    },
-    {
-      "address": 66,
-      "name": "m_angle_rad_comp",
-      "format": "<f",
-      "read": true,
-      "write": false,
-      "streaming": true
-    },
-    {
-      "address": 67,
-      "name": "v_bus",
-      "format": "<f",
-      "read": true,
-      "write": false,
-      "streaming": true
-    },
-    {
-      "address": 68,
       "name": "impedance_stiffness",
       "format": "<f",
       "read": true,
@@ -508,7 +289,7 @@
       "streaming": false
     },
     {
-      "address": 69,
+      "address": 41,
       "name": "impedance_damping",
       "format": "<f",
       "read": true,
@@ -516,7 +297,7 @@
       "streaming": false
     },
     {
-      "address": 70,
+      "address": 42,
       "name": "cff_ref",
       "format": "<f",
       "read": true,
@@ -524,7 +305,303 @@
       "streaming": true
     },
     {
+      "address": 43,
+      "name": "fw_kp",
+      "format": "<f",
+      "read": true,
+      "write": true,
+      "streaming": false
+    },
+    {
+      "address": 44,
+      "name": "fw_ki",
+      "format": "<f",
+      "read": true,
+      "write": true,
+      "streaming": false
+    },
+    {
+      "address": 45,
+      "name": "fw_out_min",
+      "format": "<f",
+      "read": true,
+      "write": true,
+      "streaming": false
+    },
+    {
+      "address": 46,
+      "name": "fw_enable",
+      "format": "<B",
+      "read": true,
+      "write": true,
+      "streaming": false
+    },
+    {
+      "address": 47,
+      "name": "mtpa_enable",
+      "format": "<B",
+      "read": true,
+      "write": true,
+      "streaming": false
+    },
+    {
+      "address": 48,
+      "name": "cur_sense_scale",
+      "format": "<f",
+      "read": true,
+      "write": true,
+      "streaming": false
+    },
+    {
+      "address": 49,
+      "name": "cur_sense_ia_offset",
+      "format": "<f",
+      "read": true,
+      "write": true,
+      "streaming": false
+    },
+    {
+      "address": 50,
+      "name": "cur_sense_ib_offset",
+      "format": "<f",
+      "read": true,
+      "write": true,
+      "streaming": false
+    },
+    {
+      "address": 51,
+      "name": "cur_sense_ic_offset",
+      "format": "<f",
+      "read": true,
+      "write": true,
+      "streaming": false
+    },
+    {
+      "address": 52,
+      "name": "vbus_sense_scale",
+      "format": "<f",
+      "read": true,
+      "write": true,
+      "streaming": false
+    },
+    {
+      "address": 53,
+      "name": "vbus_sense_offset",
+      "format": "<f",
+      "read": true,
+      "write": true,
+      "streaming": false
+    },
+    {
+      "address": 54,
+      "name": "current_set_point",
+      "format": "<f",
+      "read": true,
+      "write": true,
+      "streaming": true
+    },
+    {
+      "address": 55,
+      "name": "speed_set_point",
+      "format": "<f",
+      "read": true,
+      "write": true,
+      "streaming": true
+    },
+    {
+      "address": 56,
+      "name": "position_set_point",
+      "format": "<f",
+      "read": true,
+      "write": true,
+      "streaming": true
+    },
+    {
+      "address": 57,
+      "name": "ia",
+      "format": "<f",
+      "read": true,
+      "write": false,
+      "streaming": true
+    },
+    {
+      "address": 58,
+      "name": "ib",
+      "format": "<f",
+      "read": true,
+      "write": false,
+      "streaming": true
+    },
+    {
+      "address": 59,
+      "name": "ic",
+      "format": "<f",
+      "read": true,
+      "write": false,
+      "streaming": true
+    },
+    {
+      "address": 60,
+      "name": "i_alpha",
+      "format": "<f",
+      "read": true,
+      "write": false,
+      "streaming": true
+    },
+    {
+      "address": 61,
+      "name": "i_beta",
+      "format": "<f",
+      "read": true,
+      "write": false,
+      "streaming": true
+    },
+    {
+      "address": 62,
+      "name": "id",
+      "format": "<f",
+      "read": true,
+      "write": false,
+      "streaming": true
+    },
+    {
+      "address": 63,
+      "name": "iq",
+      "format": "<f",
+      "read": true,
+      "write": false,
+      "streaming": true
+    },
+    {
+      "address": 64,
+      "name": "va",
+      "format": "<f",
+      "read": true,
+      "write": false,
+      "streaming": true
+    },
+    {
+      "address": 65,
+      "name": "vb",
+      "format": "<f",
+      "read": true,
+      "write": false,
+      "streaming": true
+    },
+    {
+      "address": 66,
+      "name": "vc",
+      "format": "<f",
+      "read": true,
+      "write": false,
+      "streaming": true
+    },
+    {
+      "address": 67,
+      "name": "v_alpha",
+      "format": "<f",
+      "read": true,
+      "write": false,
+      "streaming": true
+    },
+    {
+      "address": 68,
+      "name": "v_beta",
+      "format": "<f",
+      "read": true,
+      "write": false,
+      "streaming": true
+    },
+    {
+      "address": 69,
+      "name": "vd",
+      "format": "<f",
+      "read": true,
+      "write": true,
+      "streaming": true
+    },
+    {
+      "address": 70,
+      "name": "vq",
+      "format": "<f",
+      "read": true,
+      "write": true,
+      "streaming": true
+    },
+    {
       "address": 71,
+      "name": "e_rad",
+      "format": "<f",
+      "read": true,
+      "write": true,
+      "streaming": true
+    },
+    {
+      "address": 72,
+      "name": "actual_rpm",
+      "format": "<f",
+      "read": true,
+      "write": false,
+      "streaming": true
+    },
+    {
+      "address": 73,
+      "name": "actual_angle",
+      "format": "<f",
+      "read": true,
+      "write": false,
+      "streaming": true
+    },
+    {
+      "address": 74,
+      "name": "is_ref",
+      "format": "<f",
+      "read": true,
+      "write": true,
+      "streaming": true
+    },
+    {
+      "address": 75,
+      "name": "rpm_ref",
+      "format": "<f",
+      "read": true,
+      "write": true,
+      "streaming": true
+    },
+    {
+      "address": 76,
+      "name": "pos_ref",
+      "format": "<f",
+      "read": true,
+      "write": true,
+      "streaming": true
+    },
+    {
+      "address": 77,
+      "name": "m_angle_rad",
+      "format": "<f",
+      "read": true,
+      "write": false,
+      "streaming": true
+    },
+    {
+      "address": 78,
+      "name": "m_angle_rad_comp",
+      "format": "<f",
+      "read": true,
+      "write": false,
+      "streaming": true
+    },
+    {
+      "address": 79,
+      "name": "v_bus",
+      "format": "<f",
+      "read": true,
+      "write": false,
+      "streaming": true
+    },
+    {
+      "address": 80,
       "name": "trajectory_v_max",
       "format": "<f",
       "read": true,
@@ -532,7 +609,7 @@
       "streaming": false
     },
     {
-      "address": 72,
+      "address": 81,
       "name": "trajectory_a_max",
       "format": "<f",
       "read": true,
@@ -540,7 +617,7 @@
       "streaming": false
     },
     {
-      "address": 73,
+      "address": 82,
       "name": "trajectory_j_max",
       "format": "<f",
       "read": true,
@@ -548,7 +625,7 @@
       "streaming": false
     },
     {
-      "address": 74,
+      "address": 83,
       "name": "trajectory_target_pos",
       "format": "<f",
       "read": false,

@@ -3,6 +3,10 @@
 
 // low level implementation on stm32f405rgt6
 
+void link_system_reset(void) {
+  NVIC_SystemReset();
+}
+
 static uint32_t get_timer_clock(TIM_HandleTypeDef *htim) {
   if (htim->Instance == TIM1 || htim->Instance == TIM8 || 
       htim->Instance == TIM9 || htim->Instance == TIM10 || 
